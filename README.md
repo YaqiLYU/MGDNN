@@ -26,5 +26,6 @@ f :quality-aware features for no-reference quality assessment
 
 Note: output features are used to regress the quality of input image using SVM or SAE refer to :
 http://www.csie.ntu.edu.tw/~cjlin/libsvm/
+
 https://github.com/happynear/DeepLearnToolbox/
 %=========================================================================
