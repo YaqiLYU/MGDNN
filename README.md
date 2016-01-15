@@ -11,8 +11,8 @@ assessment: A deep learning approach." Image Processing (ICIP),
 2015: First released version. Only feature extraction section is given. 
 The new version will be updated soon.
 
-
 %----------------------------------------------------------------------
+
 Function to extract local normalized multi-scale difference of Gaussian features (MGDNN). 
 
 Input
