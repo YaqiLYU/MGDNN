@@ -1,0 +1,88 @@
+%=========================================================================
+% This is an implementation of the no-reference image quality metric described in the following paper:
+% Yaqi Lv, Gangyi Jiang, Mei Yu, Haiyong Xu, Feng Shao, and Shanshan Liu, 
+% Difference of Gaussian statistical features based blind image quality 
+% assessment: A deep learning approach[C]//Image Processing (ICIP), 
+% 2015 IEEE International Conference on. IEEE, 2015: 2344-2348.
+%
+% 2015: First released version. Only feature extraction section is given. 
+% The new version will be updated soon.
+%
+%----------------------------------------------------------------------
+% Function to extract local normalized multi-scale difference of Gaussian features (MGDNN). 
+% Input : 
+% img: the distorted image to be evaluated
+%
+% Output:
+% f :quality-aware features for no-reference quality assessment
+%
+% Note: output features are used to regress the quality of input image using SVM or SAE.
+% refer to :
+% http://www.csie.ntu.edu.tw/~cjlin/libsvm/
+% https://github.com/happynear/DeepLearnToolbox/
+%=========================================================================
+
+
+function f = MGDNN_feature(img)
+f=[];
+scalenum=5;
+kband=5;
+img = double(rgb2gray(img));
+for itr_scale = 1:scalenum
+fl = DOG_feat(img,kband);
+f=[f fl];
+img = imresize(img,0.5);
+end
+end
+
+function f = DOG_feat(imgY,kband)
+% Multi-scale difference of Gaussian
+f=[];
+width = size(imgY,2);
+height = size(imgY,1);
+gspace_img = zeros(height,width,kband);
+ksplit_img = zeros(height,width,kband);
+gspace_img(:,:,1)=imgY;
+for band = 2:kband
+    sigma = 1.6^(band-2); 
+    ws = ceil(2*(3*sigma+1));
+    h = fspecial('gaussian',ws,sigma);    
+    gspace_img(:,:,band) = imfilter(gspace_img(:,:,1),h); 
+end
+for band = 1:kband-1
+    ksplit_img(:,:,band) = gspace_img(:,:,band) - gspace_img(:,:,band+1);
+end
+ksplit_img(:,:,kband) = gspace_img(:,:,kband);
+for band=1:kband
+    dog=normalization(ksplit_img(:,:,band));%Local Normalization
+    f=[f lmom(dog(:))];%L-moments distribution estimation
+end
+end
+
+function img_norm=normalization(img)
+window = fspecial('gaussian',7,7/6);
+window = window/sum(sum(window));
+mu            = filter2(window, img, 'same');
+mu_sq         = mu.*mu;
+sigma         = sqrt(abs(filter2(window, img.*img, 'same') - mu_sq));
+img_norm     = (img-mu)./(sigma+1);
+end
+
+function [L] = lmom(X)
+[~, cols] = size(X);
+if cols == 1 X = X'; end
+n = length(X);
+X = sort(X);
+b = zeros(1,3);
+l = zeros(1,3);
+b0 = mean(X);
+for r = 1:3
+    Num = prod(repmat(r+1:n,r,1)-repmat([1:r]',1,n-r),1);
+    Den = prod(repmat(n,1,r) - [1:r]);
+    b(r) = 1/n * sum( Num/Den .* X(r+1:n) );
+end
+L(1) = b0;
+L(2) = 2*b(1) -b0;
+L(3) = 6*b(2) - 6*b(1) + b0;
+L(4) = 20*b(3)-30*b(2) + 12*b(1) - b0;
+end
